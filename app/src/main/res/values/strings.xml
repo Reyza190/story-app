@@ -9,4 +9,7 @@
     <string name="upload">Upload</string>
     <string name="description">Description</string>
     <string name="foto_story">foto story</string>
+    <string name="title_activity_maps">MapsActivity</string>
+    <string name="maps">Maps</string>
+    <string name="retry">Coba lagi</string>
 </resources>

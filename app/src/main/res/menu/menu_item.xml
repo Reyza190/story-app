@@ -6,4 +6,10 @@
         android:title="@string/logout"
         app:showAsAction="collapseActionView"
         />
+
+    <item
+        android:id="@+id/maps"
+        android:title="@string/maps"
+        app:showAsAction="collapseActionView"
+        />
 </menu>

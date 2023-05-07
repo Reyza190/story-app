@@ -13,6 +13,7 @@ import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.preferencesDataStore
 import androidx.lifecycle.ViewModelProvider
 import com.example.storyapp.ViewModelFactory
+import com.example.storyapp.data.api.LoginResult
 import com.example.storyapp.data.local.UserPreference
 import com.example.storyapp.databinding.ActivityLoginBinding
 import com.example.storyapp.ui.main.MainActivity
@@ -31,10 +32,7 @@ class LoginActivity : AppCompatActivity() {
         //animation
         playAnimation()
 
-        loginViewModel = ViewModelProvider(
-            this,
-            ViewModelFactory(UserPreference.getInstance(dataStore))
-        )[LoginViewModel::class.java]
+        loginViewModel = ViewModelProvider(this)[LoginViewModel::class.java]
 
         binding.btnRegister.setOnClickListener {
             startActivity(Intent(this, RegisterActivity::class.java))
@@ -47,6 +45,10 @@ class LoginActivity : AppCompatActivity() {
                     loginViewModel.login(
                         email, password
                     )
+                    loginViewModel.data.observe(this){data ->
+                        saveKey(data)
+                    }
+
                 }
             } else {
                 toastMessage("Lengkapi form")
@@ -54,13 +56,6 @@ class LoginActivity : AppCompatActivity() {
 
         }
 
-        loginViewModel.stateData().observe(this) { result ->
-            if (result.isNotEmpty()) {
-                val intent = Intent(this, MainActivity::class.java)
-                intent.flags = Intent.FLAG_ACTIVITY_CLEAR_TASK or Intent.FLAG_ACTIVITY_NEW_TASK
-                startActivity(intent)
-            }
-        }
 
 
         loginViewModel.message.observe(this) { message ->
@@ -77,6 +72,11 @@ class LoginActivity : AppCompatActivity() {
         }
 
 
+    }
+
+    private fun saveKey(data: LoginResult?) {
+        val pref = com.example.storyapp.data.UserPreference(applicationContext)
+        pref.setToken(data?.token.toString())
     }
 
     private fun playAnimation() {

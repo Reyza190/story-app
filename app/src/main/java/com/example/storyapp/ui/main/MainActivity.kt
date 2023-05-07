@@ -7,6 +7,7 @@ import android.view.Menu
 import android.view.MenuItem
 import android.view.View
 import android.widget.Toast
+import androidx.activity.viewModels
 import androidx.appcompat.app.AppCompatActivity
 import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
@@ -16,37 +17,39 @@ import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.example.storyapp.R
 import com.example.storyapp.ViewModelFactory
+import com.example.storyapp.adapter.LoadingStateAdapter
 import com.example.storyapp.adapter.StoryAdapter
 import com.example.storyapp.data.local.UserPreference
 import com.example.storyapp.databinding.ActivityMainBinding
 import com.example.storyapp.ui.login.LoginActivity
+import com.example.storyapp.ui.maps.MapsActivity
 import com.example.storyapp.ui.upload.UploadActivity
 import kotlinx.coroutines.launch
 
 private val Context.dataStore: DataStore<Preferences> by preferencesDataStore(name = "settings")
 
 class MainActivity : AppCompatActivity() {
-    private lateinit var mainViewModel: MainViewModel
+    private val mainViewModel: MainViewModel by viewModels {
+        MainViewModel.ViewModelFactory(this)
+    }
     private lateinit var binding: ActivityMainBinding
+    private lateinit var pref : com.example.storyapp.data.UserPreference
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         binding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
+        pref = com.example.storyapp.data.UserPreference(this)
         val token: String = intent.getStringExtra("TOKEN").toString()
 
 
 
-        mainViewModel = ViewModelProvider(
-            this,
-            ViewModelFactory(UserPreference.getInstance(dataStore))
-        )[MainViewModel::class.java]
+        val amang = pref.getToken()
+
 
         setRecycleView(token)
 
-
-        Toast.makeText(this, token, Toast.LENGTH_SHORT).show()
 
 
 
@@ -70,7 +73,13 @@ class MainActivity : AppCompatActivity() {
         val layoutManager = LinearLayoutManager(this)
         binding.rvStory.layoutManager = layoutManager
         binding.rvStory.adapter = adapter
-        mainViewModel.getAllStories(token).observe(this) {
+        binding.rvStory.adapter = adapter.withLoadStateFooter(
+            footer = LoadingStateAdapter {
+                adapter.retry()
+            }
+        )
+
+        mainViewModel.stories.observe(this){
             adapter.submitData(lifecycle, it)
         }
 
@@ -86,10 +95,15 @@ class MainActivity : AppCompatActivity() {
         return when (item.itemId) {
             R.id.logOut -> {
                 lifecycleScope.launch {
-                    mainViewModel.clearData()
+                    pref.clearToken()
                 }
                 val intent = Intent(this, LoginActivity::class.java)
                 intent.flags = Intent.FLAG_ACTIVITY_CLEAR_TASK or Intent.FLAG_ACTIVITY_NEW_TASK
+                startActivity(intent)
+                true
+            }
+            R.id.maps -> {
+                val intent = Intent(this, MapsActivity::class.java)
                 startActivity(intent)
                 true
             }
