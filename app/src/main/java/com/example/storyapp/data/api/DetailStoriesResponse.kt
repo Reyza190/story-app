@@ -2,18 +2,6 @@ package com.example.storyapp.data.api
 
 import com.google.gson.annotations.SerializedName
 
-data class DetailStoriesResponse(
-
-	@field:SerializedName("error")
-	val error: Boolean,
-
-	@field:SerializedName("message")
-	val message: String,
-
-	@field:SerializedName("story")
-	val story: Story
-)
-
 data class Story(
 
 	@field:SerializedName("photoUrl")

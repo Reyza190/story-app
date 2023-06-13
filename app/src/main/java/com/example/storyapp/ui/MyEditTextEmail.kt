@@ -8,7 +8,6 @@ import android.text.TextWatcher
 import android.util.AttributeSet
 import android.util.Patterns
 import android.view.View
-import java.util.regex.Pattern
 
 class MyEditTextEmail : MyEditText {
 

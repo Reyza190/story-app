@@ -7,11 +7,9 @@ import java.util.concurrent.CountDownLatch
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.TimeoutException
 import kotlin.time.DurationUnit
-import kotlin.time.ExperimentalTime
 import kotlin.time.toTimeUnit
 
 
-@OptIn(ExperimentalTime::class)
 @VisibleForTesting(otherwise = VisibleForTesting.NONE)
 fun <T> LiveData<T>.getOrAwaitValue(
     time: Long = 2,
@@ -21,8 +19,8 @@ fun <T> LiveData<T>.getOrAwaitValue(
     var data: T? = null
     val latch = CountDownLatch(1)
     val observer = object : Observer<T> {
-        override fun onChanged(o: T) {
-            data = o
+        override fun onChanged(value: T) {
+            data = value
             latch.countDown()
             this@getOrAwaitValue.removeObserver(this)
         }

@@ -1,0 +1,9 @@
+{
+  "error": false,
+  "message": "success",
+  "loginResult": {
+    "userId": "user-y0vuyoDPo_nd4a8I",
+    "name": "rheza",
+    "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiJ1c2VyLXkwdnV5b0RQb19uZDRhOEkiLCJpYXQiOjE2ODM1MjU4Nzd9.jhd2n-eFAunIYFLELYkw5V2ozsXqtr5-XKvylFJyx6w"
+  }
+}

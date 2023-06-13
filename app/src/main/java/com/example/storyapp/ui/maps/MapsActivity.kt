@@ -1,19 +1,15 @@
 package com.example.storyapp.ui.maps
 
 import android.content.ContentValues.TAG
-import android.content.Context
 import android.content.res.Resources
 import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
 import android.util.Log
 import android.widget.Toast
-import androidx.datastore.core.DataStore
-import androidx.datastore.preferences.core.Preferences
-import androidx.datastore.preferences.preferencesDataStore
-import androidx.lifecycle.ViewModelProvider
+import androidx.activity.viewModels
 import com.example.storyapp.R
 import com.example.storyapp.ViewModelFactory
-import com.example.storyapp.data.local.UserPreference
+import com.example.storyapp.data.api.ListStoryItem
 
 import com.google.android.gms.maps.CameraUpdateFactory
 import com.google.android.gms.maps.GoogleMap
@@ -25,25 +21,20 @@ import com.example.storyapp.databinding.ActivityMapsBinding
 import com.google.android.gms.maps.model.LatLngBounds
 import com.google.android.gms.maps.model.MapStyleOptions
 
-private val Context.dataStore: DataStore<Preferences> by preferencesDataStore(name = "settings")
+
 class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
 
     private lateinit var mMap: GoogleMap
     private lateinit var binding: ActivityMapsBinding
-    private lateinit var mapsViewModel: MapsViewModel
+    private val mapsViewModel: MapsViewModel by viewModels {
+        ViewModelFactory(this)
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
         binding = ActivityMapsBinding.inflate(layoutInflater)
         setContentView(binding.root)
-
-        mapsViewModel = ViewModelProvider(
-            this,
-            ViewModelFactory(UserPreference.getInstance(dataStore))
-        )[MapsViewModel::class.java]
-
-
 
 
         // Obtain the SupportMapFragment and get notified when the map is ready to be used.
@@ -62,24 +53,26 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
      * installed Google Play services and returned to the app.
      */
 
-    private val boundsBuilder = LatLngBounds.Builder()
     override fun onMapReady(googleMap: GoogleMap) {
         mMap = googleMap
 
+        addMapStyle()
 
 
-
-        mapsViewModel.stateData().observe(this){token ->
-            mapsViewModel.getAllStoriesWithLocation(token)
-        }
-
-        mapsViewModel.story.observe(this){story ->
-            for (location in story){
-                val loc = LatLng(location.lat, location.lon)
-                mMap.addMarker(MarkerOptions().position(loc).title("${location.name} Marker "))
+        mapsViewModel.getAllStorieswithLocation().observe(this) { result ->
+            if (result != null) {
+                when (result) {
+                    is com.example.storyapp.data.Result.Loading -> {
+                    }
+                    is com.example.storyapp.data.Result.Success -> {
+                        val resultLocation = result.data.listStory
+                        addMarker(resultLocation)
+                    }
+                    is com.example.storyapp.data.Result.Error -> {
+                        toastMessage(result.error)
+                    }
+                }
             }
-            val moveLocation = LatLng(story[0].lat, story[0].lon)
-            mMap.moveCamera(CameraUpdateFactory.newLatLng(moveLocation))
         }
 
         mMap.uiSettings.isZoomControlsEnabled = true
@@ -87,6 +80,23 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
         mMap.uiSettings.isCompassEnabled = true
         mMap.uiSettings.isMapToolbarEnabled = true
 
+
+    }
+
+    private fun toastMessage(message: String) {
+        Toast.makeText(this, message, Toast.LENGTH_SHORT).show()
+    }
+
+    private fun addMarker(stories: List<ListStoryItem>) {
+        stories.forEach { loc ->
+            val latLng = LatLng(loc.lat, loc.lon)
+            mMap.addMarker(MarkerOptions().position(latLng).title(loc.name))
+        }
+        val moveLocation = LatLng(stories[0].lat, stories[0].lon)
+        mMap.moveCamera(CameraUpdateFactory.newLatLng(moveLocation))
+    }
+
+    private fun addMapStyle(){
         try {
             val success =
                 mMap.setMapStyle(MapStyleOptions.loadRawResourceStyle(this, R.raw.map_style))

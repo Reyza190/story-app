@@ -31,6 +31,16 @@
         app:layout_constraintTop_toTopOf="parent"
         android:contentDescription="@string/foto_story" />
 
+    <Switch
+        android:id="@+id/switchLocation"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="@string/add_location"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/ivStory"
+        tools:ignore="UseSwitchCompatOrMaterialXml" />
+
     <androidx.appcompat.widget.AppCompatButton
         android:id="@+id/btnCamera"
         android:layout_width="wrap_content"
@@ -39,7 +49,7 @@
         android:text="@string/camera"
         app:layout_constraintEnd_toStartOf="@+id/btnGalery"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/ivStory" />
+        app:layout_constraintTop_toBottomOf="@+id/switchLocation" />
 
     <androidx.appcompat.widget.AppCompatButton
         android:id="@+id/btnGalery"
@@ -49,7 +59,7 @@
         android:text="@string/galery"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toEndOf="@+id/btnCamera"
-        app:layout_constraintTop_toBottomOf="@+id/ivStory" />
+        app:layout_constraintTop_toBottomOf="@+id/switchLocation" />
 
     <EditText
         android:id="@+id/edtDescription"

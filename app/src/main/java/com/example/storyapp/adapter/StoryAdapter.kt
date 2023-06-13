@@ -7,40 +7,14 @@ import androidx.paging.PagingDataAdapter
 import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.RecyclerView
 import com.bumptech.glide.Glide
-import com.example.storyapp.data.api.ListStoryItem
-import com.example.storyapp.data.api.Story
 import com.example.storyapp.databinding.ListStoryBinding
 import com.example.storyapp.ui.detail.DetailActivity
 
-//class StoryAdapter(private val listStory: List<ListStoryItem>):RecyclerView.Adapter<StoryAdapter.ViewHolder>() {
-//    class ViewHolder(var binding : ListStoryBinding) : RecyclerView.ViewHolder(binding.root)
-//
-//    override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ViewHolder {
-//        val binding = ListStoryBinding.inflate(LayoutInflater.from(parent.context), parent, false)
-//        return ViewHolder(binding)
-//    }
-//
-//    override fun getItemCount(): Int {
-//        return listStory.size
-//    }
-//
-//    override fun onBindViewHolder(holder: ViewHolder, position: Int) {
-//        val story = listStory[position]
-//        Glide.with(holder.itemView.context).load(story.photoUrl).into(holder.binding.ivStory)
-//        holder.binding.userName.text = story.name
-//        holder.itemView.setOnClickListener {
-//            val intent = Intent(it.context, DetailActivity::class.java)
-//            intent.putExtra("STORY", story)
-//            it.context.startActivity(intent)
-//        }
-//    }
-//}
-
 class StoryAdapter :
-    PagingDataAdapter<ListStoryItem, StoryAdapter.ViewHolder>(DIFF_CALLBACK) {
+    PagingDataAdapter<com.example.storyapp.data.local.Story, StoryAdapter.ViewHolder>(DIFF_CALLBACK) {
     class ViewHolder(private val binding: ListStoryBinding) :
         RecyclerView.ViewHolder(binding.root) {
-        fun bind(data: ListStoryItem) {
+        fun bind(data: com.example.storyapp.data.local.Story) {
             Glide.with(itemView.context).load(data.photoUrl).into(binding.ivStory)
             binding.userName.text = data.name
             itemView.setOnClickListener {
@@ -58,20 +32,20 @@ class StoryAdapter :
         }
     }
 
-    override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): StoryAdapter.ViewHolder {
+    override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ViewHolder {
         val binding = ListStoryBinding.inflate(LayoutInflater.from(parent.context), parent, false)
         return ViewHolder(binding)
     }
 
     companion object {
-        val DIFF_CALLBACK = object : DiffUtil.ItemCallback<ListStoryItem>() {
-            override fun areItemsTheSame(oldItem: ListStoryItem, newItem: ListStoryItem): Boolean {
+        val DIFF_CALLBACK = object : DiffUtil.ItemCallback<com.example.storyapp.data.local.Story>() {
+            override fun areItemsTheSame(oldItem: com.example.storyapp.data.local.Story, newItem: com.example.storyapp.data.local.Story): Boolean {
                 return oldItem == newItem
             }
 
             override fun areContentsTheSame(
-                oldItem: ListStoryItem,
-                newItem: ListStoryItem
+                oldItem: com.example.storyapp.data.local.Story,
+                newItem: com.example.storyapp.data.local.Story
             ): Boolean {
                 return oldItem.id == newItem.id
             }

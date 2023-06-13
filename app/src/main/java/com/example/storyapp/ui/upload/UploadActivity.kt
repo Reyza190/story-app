@@ -1,7 +1,6 @@
 package com.example.storyapp.ui.upload
 
 import android.Manifest
-import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.graphics.BitmapFactory
@@ -11,16 +10,14 @@ import android.os.Bundle
 import android.view.View
 import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.activity.viewModels
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
-import androidx.datastore.core.DataStore
-import androidx.datastore.preferences.core.Preferences
-import androidx.datastore.preferences.preferencesDataStore
-import androidx.lifecycle.ViewModelProvider
 import com.example.storyapp.*
-import com.example.storyapp.data.local.UserPreference
 import com.example.storyapp.databinding.ActivityUploadBinding
 import com.example.storyapp.ui.main.MainActivity
+import com.google.android.gms.location.FusedLocationProviderClient
+import com.google.android.gms.location.LocationServices
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.MediaType.Companion.toMediaTypeOrNull
 import okhttp3.MultipartBody
@@ -28,21 +25,28 @@ import okhttp3.RequestBody.Companion.asRequestBody
 import okhttp3.RequestBody.Companion.toRequestBody
 import java.io.File
 
-private val Context.dataStore: DataStore<Preferences> by preferencesDataStore(name = "settings")
 
 class UploadActivity : AppCompatActivity() {
 
     private lateinit var binding: ActivityUploadBinding
-    private lateinit var uploadViewModel: UploadViewModel
-    private lateinit var token: String
+    private val uploadViewModel: UploadViewModel by viewModels {
+        ViewModelFactory(this)
+    }
+
+    private var lat: Float = 0.0f
+    private var lon: Float = 0.0f
 
     private var getFile: File? = null
+
+    private lateinit var fusedLocationClient: FusedLocationProviderClient
 
     companion object {
         const val CAMERA_X_RESULT = 200
 
         private val REQUIRED_PERMISSIONS = arrayOf(Manifest.permission.CAMERA)
         private const val REQUEST_CODE_PERMISSIONS = 10
+        private const val LOCATION_PERMISSION_REQ_CODE = 1000
+
     }
 
     override fun onRequestPermissionsResult(
@@ -80,7 +84,7 @@ class UploadActivity : AppCompatActivity() {
                 isBackCamera
             )
 
-            val resultUri = getImageUriFromBitmap(this,result)
+            val resultUri = getImageUriFromBitmap(this, result)
             getFile = uriToFile(resultUri, this)
 
             binding.ivStory.setImageBitmap(result)
@@ -104,6 +108,8 @@ class UploadActivity : AppCompatActivity() {
         binding = ActivityUploadBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
+        fusedLocationClient = LocationServices.getFusedLocationProviderClient(this)
+
         if (!allPermissionsGranted()) {
             ActivityCompat.requestPermissions(
                 this,
@@ -112,31 +118,44 @@ class UploadActivity : AppCompatActivity() {
             )
         }
 
-        uploadViewModel = ViewModelProvider(
-            this,
-            ViewModelFactory(UserPreference.getInstance(dataStore))
-        )[UploadViewModel::class.java]
-
-        uploadViewModel.loading.observe(this){ loading ->
-            showLoading(loading)
-        }
 
         binding.btnCamera.setOnClickListener { startCamera() }
         binding.btnGalery.setOnClickListener { startGalery() }
-        uploadViewModel.stateData().observe(this) {
-            token = it
-        }
-        binding.uploadStory.setOnClickListener { uploadStory(getFile, token) }
-        uploadViewModel.message.observe(this){message->
-            toastMessage(message)
-            val intent = Intent(this, MainActivity::class.java)
-            intent.flags = Intent.FLAG_ACTIVITY_CLEAR_TASK or Intent.FLAG_ACTIVITY_NEW_TASK
-            startActivity(intent)
+        binding.uploadStory.setOnClickListener { uploadStory(getFile) }
+        binding.switchLocation.setOnCheckedChangeListener { _, isChecked ->
+            if (isChecked) {
+                getCurrentLocation()
+            } else {
+                lat = 0.0f
+                lon = 0.0f
+            }
         }
 
     }
 
-    private fun uploadStory(file: File?, token: String) {
+    private fun getCurrentLocation() {
+        if (ActivityCompat.checkSelfPermission(
+                this,
+                Manifest.permission.ACCESS_FINE_LOCATION
+            ) != PackageManager.PERMISSION_GRANTED
+        ) {
+            // request permission
+            ActivityCompat.requestPermissions(
+                this,
+                arrayOf(Manifest.permission.ACCESS_FINE_LOCATION), LOCATION_PERMISSION_REQ_CODE
+            )
+            return
+        }
+        fusedLocationClient.lastLocation
+            .addOnSuccessListener { location ->
+                lat = location.latitude.toFloat()
+                lon = location.longitude.toFloat()
+            }.addOnFailureListener { error ->
+                toastMessage(error.message.toString())
+            }
+    }
+
+    private fun uploadStory(file: File?) {
         if (file != null) {
 
             val imageFile = reduceFileImage(file)
@@ -150,10 +169,52 @@ class UploadActivity : AppCompatActivity() {
 
             val desc = binding.edtDescription.text.toString()
             val description = desc.toRequestBody("text/plain".toMediaType())
-            if (desc.isEmpty()){
+            if (desc.isEmpty()) {
                 toastMessage("Deskripsi tidak boleh kosong")
-            }else {
-                uploadViewModel.uploadStory(token, imageMultipart, description)
+            } else if (lat != 0.0f && lon != 0.0f) {
+                uploadViewModel.uploadStoryWithLocation(imageMultipart, description, lat, lon)
+                    .observe(this) { result ->
+                        if (result != null) {
+                            when (result) {
+                                is com.example.storyapp.data.Result.Loading -> {
+                                    showLoading(true)
+                                }
+                                is com.example.storyapp.data.Result.Success -> {
+                                    showLoading(false)
+                                    val intent = Intent(this, MainActivity::class.java)
+                                    intent.flags =
+                                        Intent.FLAG_ACTIVITY_CLEAR_TASK or Intent.FLAG_ACTIVITY_NEW_TASK
+                                    startActivity(intent)
+                                }
+                                is com.example.storyapp.data.Result.Error -> {
+                                    showLoading(false)
+                                    toastMessage(result.error)
+                                }
+                            }
+                        }
+                    }
+            } else {
+                uploadViewModel.uploadStory(imageMultipart, description)
+                    .observe(this) { result ->
+                        if (result != null) {
+                            when (result) {
+                                is com.example.storyapp.data.Result.Loading -> {
+                                    showLoading(true)
+                                }
+                                is com.example.storyapp.data.Result.Success -> {
+                                    showLoading(false)
+                                    val intent = Intent(this, MainActivity::class.java)
+                                    intent.flags =
+                                        Intent.FLAG_ACTIVITY_CLEAR_TASK or Intent.FLAG_ACTIVITY_NEW_TASK
+                                    startActivity(intent)
+                                }
+                                is com.example.storyapp.data.Result.Error -> {
+                                    showLoading(false)
+                                    toastMessage(result.error)
+                                }
+                            }
+                        }
+                    }
             }
         }
     }
